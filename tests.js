@@ -3,7 +3,8 @@
 
 'use strict';
 
-const { PARTS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT } = require('./game.js');
+const { PARTS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT,
+        getDialogue, variantIndex } = require('./game.js');
 
 // ── Tiny test harness ─────────────────────────────────────────
 let passed = 0;
@@ -167,6 +168,69 @@ expectTrue('battery stop is right of start',  stopPct > START_PCT);
 const successResult = evaluate(body('light-frame'), limb('wide-wheels'), battery('mega-capacitor'));
 expect('light+wide+mega is success', successResult.outcome, 'success');
 expectTrue('success range score is well above threshold', successResult.range >= THRESHOLD.range);
+
+// 6. Dr. Voltan dialogue — all 27 combos produce a non-empty string
+console.log('\n--- Dr. Voltan dialogue (all 27 combos) ---');
+for (const [b, l, bat, expectedOutcome] of EXPECTED) {
+  const bodyPart    = body(b);
+  const limbPart    = limb(l);
+  const batteryPart = battery(bat);
+  const result      = evaluate(bodyPart, limbPart, batteryPart);
+  const dialogue    = getDialogue(result, bodyPart, limbPart, batteryPart);
+
+  expectTrue(`${b} + ${l} + ${bat} → non-empty dialogue`,
+    typeof dialogue === 'string' && dialogue.trim().length > 0);
+}
+
+// 7. Each outcome has 3 distinct lines (no two variants are identical)
+console.log('\n--- Dialogue has 3 distinct lines per outcome ---');
+for (const outcome of ['tip', 'spin', 'battery', 'success']) {
+  // Find three combos that the hash assigns to variant 0, 1, and 2
+  const byVariant = [null, null, null];
+  for (const [b, l, bat, o] of EXPECTED) {
+    if (o !== outcome) continue;
+    const v = variantIndex(body(b), limb(l), battery(bat));
+    if (byVariant[v] === null) byVariant[v] = [b, l, bat];
+    if (byVariant.every(x => x !== null)) break;
+  }
+  if (byVariant.some(x => x === null)) {
+    console.log(`  ⚠  could not find all 3 variants for '${outcome}' — hash distribution is too narrow`);
+    continue;
+  }
+  const lines = byVariant.map(([b, l, bat]) => {
+    const bp = body(b); const lp = limb(l); const batp = battery(bat);
+    return getDialogue(evaluate(bp, lp, batp), bp, lp, batp);
+  });
+  expectTrue(`outcome '${outcome}': variant 0 ≠ variant 1`, lines[0] !== lines[1]);
+  expectTrue(`outcome '${outcome}': variant 1 ≠ variant 2`, lines[1] !== lines[2]);
+  expectTrue(`outcome '${outcome}': variant 0 ≠ variant 2`, lines[0] !== lines[2]);
+}
+
+// 8. Dialogue contains the real numbers relevant to each outcome
+console.log('\n--- Dialogue includes real physics numbers ---');
+const checkNum = (desc, comboArr, scoreKeys) => {
+  const [b, l, bat] = comboArr;
+  const bp = body(b); const lp = limb(l); const batp = battery(bat);
+  const result   = evaluate(bp, lp, batp);
+  const dialogue = getDialogue(result, bp, lp, batp);
+  const plain    = dialogue.replace(/<[^>]+>/g, ''); // strip HTML tags
+  for (const key of scoreKeys) {
+    const numStr = result[key].toFixed(2);
+    expectTrue(`${desc}: contains ${key}=${numStr}`, plain.includes(numStr));
+  }
+};
+// Each outcome only needs to show the score(s) it failed on
+checkNum('success (light+wide+mega)',    ['light-frame',  'wide-wheels',   'mega-capacitor'], ['torque', 'balance', 'range']);
+checkNum('tip    (heavy+spindly+tiny)',  ['heavy-torso',  'spindly-legs',  'tiny-cell'],      ['balance']);
+checkNum('spin   (barrel+spindly+tiny)', ['barrel-chest', 'spindly-legs',  'tiny-cell'],      ['torque']);
+checkNum('battery(barrel+wide+standard)',['barrel-chest', 'wide-wheels',   'standard-pack'],  ['range']);
+
+// 9. variantIndex returns 0, 1, or 2 for all 27 combos
+console.log('\n--- variantIndex is always 0, 1, or 2 ---');
+for (const [b, l, bat] of EXPECTED.map(r => r.slice(0, 3))) {
+  const v = variantIndex(body(b), limb(l), battery(bat));
+  expectTrue(`${b}+${l}+${bat} variant in {0,1,2}`, v === 0 || v === 1 || v === 2);
+}
 
 // ── Summary ───────────────────────────────────────────────────
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
