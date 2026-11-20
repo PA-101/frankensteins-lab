@@ -43,6 +43,12 @@
       </div>
     </section>
 
+    <!-- ══ LEVEL PICKER ════════════════════════════════════════ -->
+    <section class="level-section" aria-label="Level selection">
+      <h2>🗺️ Choose Terrain</h2>
+      <div id="level-selector" class="level-grid"></div>
+    </section>
+
     <!-- ══ ACTIVATE BUTTON ═════════════════════════════════════ -->
     <div class="action-row">
       <button id="btn-activate" disabled>⚡ Bring it to life!</button>
@@ -51,7 +57,7 @@
     <!-- ══ ANIMATION STAGE (hidden until activation) ══════════ -->
     <section class="stage-section" id="stage" aria-label="Animation stage">
       <div class="track-wrapper">
-        <img class="track-bg" src="assets/track.svg" alt="spooky track" />
+        <img class="track-bg" src="assets/tracks/flat.svg" alt="spooky track" />
         <!-- Robot assembled from selected SVG sprites (built by JS in Task 8) -->
         <div class="robot-sprite" id="robot">
           <img class="robot-body"  id="robot-body-img"  src="" alt="" />

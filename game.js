@@ -20,30 +20,60 @@ const PARTS = {
   ],
 };
 
-// ── Physics thresholds ────────────────────────────────────────
+// ── Level catalogue ───────────────────────────────────────────
+const LEVELS = [
+  {
+    id: 'flat', label: 'Flat Graveyard Road',
+    icon: '🪦', colour: '#68d391',
+    balance: 0.70, torque: 0.60, range: 0.50,
+    track: 'assets/tracks/flat.svg',
+    flavour: 'on the graveyard road',
+    hint: 'Standard terrain — a good warm-up.',
+  },
+  {
+    id: 'mud', label: 'Muddy Hill',
+    icon: '⛰️', colour: '#9ae6b4',
+    balance: 0.70, torque: 0.90, range: 0.65,
+    track: 'assets/tracks/mud.svg',
+    flavour: 'on the muddy hill',
+    hint: 'Needs more torque and range — mud is brutal.',
+  },
+  {
+    id: 'bridge', label: 'Rickety Bridge',
+    icon: '🌉', colour: '#f6ad55',
+    balance: 1.10, torque: 0.65, range: 0.50,
+    track: 'assets/tracks/bridge.svg',
+    flavour: 'on the rickety bridge',
+    hint: 'Balance critical — heavy robots break the planks.',
+  },
+];
+
+// ── Physics thresholds (kept for backward-compat; levels now own thresholds) ──
 const THRESHOLD = { balance: 0.7, torque: 0.6, range: 0.5 };
 
 // ── Physics engine ────────────────────────────────────────────
 /**
- * evaluate(body, limb, battery) → { outcome, torque, balance, range }
+ * evaluate(body, limb, battery, level?) → { outcome, torque, balance, range }
+ * level defaults to LEVELS[0] (flat) when omitted.
  * outcome is one of: 'tip' | 'spin' | 'battery' | 'success'
  */
-function evaluate(body, limb, battery) {
+function evaluate(body, limb, battery, level) {
+  const lv      = level || LEVELS[0];
   const torque  = battery.power    / body.mass;
   const balance = body.width / body.height + limb.stability_bonus;
   const range   = battery.capacity / body.mass;
 
   let outcome;
-  if      (balance < THRESHOLD.balance) outcome = 'tip';
-  else if (torque  < THRESHOLD.torque)  outcome = 'spin';
-  else if (range   < THRESHOLD.range)   outcome = 'battery';
-  else                                   outcome = 'success';
+  if      (balance < lv.balance) outcome = 'tip';
+  else if (torque  < lv.torque)  outcome = 'spin';
+  else if (range   < lv.range)   outcome = 'battery';
+  else                            outcome = 'success';
 
   return { outcome, torque, balance, range };
 }
 
 // ── Selection state ───────────────────────────────────────────
-const selection = { body: null, limb: null, battery: null };
+const selection = { body: null, limb: null, battery: null, level: null };
 
 // ── DOM refs ──────────────────────────────────────────────────
 let btnActivate;
@@ -79,7 +109,7 @@ function selectPart(clickedCard, part, category) {
 }
 
 function updateButton() {
-  btnActivate.disabled = !(selection.body && selection.limb && selection.battery);
+  btnActivate.disabled = !(selection.body && selection.limb && selection.battery && selection.level);
 }
 
 // ── Populate a column ─────────────────────────────────────────
@@ -87,6 +117,37 @@ function buildColumn(containerId, parts, category) {
   const col = document.getElementById(containerId);
   if (!col) return;
   parts.forEach(part => col.appendChild(makeCard(part, category)));
+}
+
+// ── Build level selector ──────────────────────────────────────
+function buildLevelSelector() {
+  const container = document.getElementById('level-selector');
+  if (!container) return;
+
+  LEVELS.forEach(level => {
+    const card = document.createElement('div');
+    card.className = 'level-card';
+    card.dataset.id = level.id;
+
+    card.innerHTML = `
+      <span class="level-icon">${level.icon}</span>
+      <span class="level-name">${level.label}</span>
+      <span class="level-hint">${level.hint}</span>
+    `;
+    card.style.setProperty('--level-colour', level.colour);
+
+    card.addEventListener('click', () => {
+      container.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selection.level = level;
+      // Swap track background
+      const trackBg = document.querySelector('.track-bg');
+      if (trackBg) trackBg.src = level.track;
+      updateButton();
+    });
+
+    container.appendChild(card);
+  });
 }
 
 // ── Animation controller ──────────────────────────────────────
@@ -170,12 +231,12 @@ function runAnimation(result) {
 }
 
 function onAnimEnd() {
-  const panel = document.getElementById('scientist-panel');
+  const panel  = document.getElementById('scientist-panel');
   const textEl = document.getElementById('scientist-text');
   if (!panel || !textEl) return;
 
-  const result = evaluate(selection.body, selection.limb, selection.battery);
-  const html   = getDialogue(result, selection.body, selection.limb, selection.battery);
+  const result = evaluate(selection.body, selection.limb, selection.battery, selection.level);
+  const html   = getDialogue(result, selection.body, selection.limb, selection.battery, selection.level);
 
   textEl.innerHTML = '';
   panel.classList.add('visible');
@@ -201,36 +262,40 @@ function variantIndex(body, limb, battery) {
 }
 
 /**
- * getDialogue(result, body, limb, battery) → HTML string
+ * getDialogue(result, body, limb, battery, level?) → HTML string
  * Returns Dr. Voltan's explanation for this result.
  * Numbers are wrapped in <span class="highlight-num"> for amber styling.
  */
-function getDialogue(result, body, limb, battery) {
+function getDialogue(result, body, limb, battery, level) {
+  const lv = level || LEVELS[0];
   const { outcome, torque, balance, range } = result;
   const T  = `<span class="highlight-num">${n(torque)}</span>`;
   const B  = `<span class="highlight-num">${n(balance)}</span>`;
   const R  = `<span class="highlight-num">${n(range)}</span>`;
-  const TH = `<span class="highlight-num">${n(THRESHOLD.torque)}</span>`;
-  const BH = `<span class="highlight-num">${n(THRESHOLD.balance)}</span>`;
-  const RH = `<span class="highlight-num">${n(THRESHOLD.range)}</span>`;
+  const TH = `<span class="highlight-num">${n(lv.torque)}</span>`;
+  const BH = `<span class="highlight-num">${n(lv.balance)}</span>`;
+  const RH = `<span class="highlight-num">${n(lv.range)}</span>`;
   const v  = variantIndex(body, limb, battery);
+  const terrain = lv.flavour; // e.g. "on the muddy hill"
 
   const lines = {
     tip: [
-      `Mwahahaha! Did you SEE that?! Your creation's balance score was a pitiful ${B} — `
-      + `and I require at least ${BH} to stay upright. `
+      `Mwahahaha! Did you SEE that?! ${terrain.charAt(0).toUpperCase() + terrain.slice(1)}, `
+      + `your creation's balance score was a pitiful ${B} — `
+      + `and I require at least ${BH} to stay upright here. `
       + `The ${body.label} is too tall and narrow! `
       + `Torque × mass means nothing if the whole thing tips before the first step. `
       + `Add wider legs next time, you fool!`,
 
-      `Oh, the BEAUTY of physics! Balance = width ÷ height + limb bonus. `
+      `Oh, the BEAUTY of physics! ${terrain.charAt(0).toUpperCase() + terrain.slice(1)}, `
+      + `Balance = width ÷ height + limb bonus. `
       + `Your ${body.label} gave you ${B}. `
-      + `The minimum is ${BH}. `
+      + `The minimum ${terrain} is ${BH}. `
       + `Even the ${limb.label} couldn't save it — their stability bonus was simply not enough. `
       + `It fell. Gloriously. As all tall things must.`,
 
       `Classic blunder! The ${body.label} has a dreadful width-to-height ratio. `
-      + `Balance came out to ${B} — that's ${(THRESHOLD.balance - balance).toFixed(2)} below the ${BH} threshold. `
+      + `Balance came out to ${B} — that's ${(lv.balance - balance).toFixed(2)} below the ${BH} threshold needed ${terrain}. `
       + `The ${limb.label} added their bonus, but the math was doomed from the start. `
       + `My formula never lies. The grave never lies either.`,
     ],
@@ -240,63 +305,63 @@ function getDialogue(result, body, limb, battery) {
       + `Your ${battery.label} produced ${n(battery.power)} of power, `
       + `divided by the ${body.label}'s mass of ${n(body.mass)}, `
       + `gives torque = ${T}. `
-      + `I need at least ${TH}! The wheels spun magnificently and went absolutely nowhere. `
+      + `I need at least ${TH} ${terrain}! The wheels spun magnificently and went absolutely nowhere. `
       + `More power, you imbecile!`,
 
-      `The ${body.label} is simply too heavy for the ${battery.label}. `
+      `The ${body.label} is simply too heavy for the ${battery.label} ${terrain}. `
       + `Torque = ${n(battery.power)} ÷ ${n(body.mass)} = ${T}. `
-      + `Threshold: ${TH}. Gap: ${(THRESHOLD.torque - torque).toFixed(2)}. `
+      + `Threshold ${terrain}: ${TH}. Gap: ${(lv.torque - torque).toFixed(2)}. `
       + `It rattled, it shook, it spun its little wheels — `
       + `and stayed rooted to the spot like a tombstone. `
       + `Upgrade your power source!`,
 
-      `My instruments confirm it: insufficient torque. `
+      `My instruments confirm it: insufficient torque ${terrain}. `
       + `${n(battery.power)} watts into ${n(body.mass)} kg of ${body.label} = ${T} N·m. `
-      + `Required: ${TH} N·m. `
-      + `The deficit is ${(THRESHOLD.torque - torque).toFixed(2)}. `
+      + `Required ${terrain}: ${TH} N·m. `
+      + `The deficit is ${(lv.torque - torque).toFixed(2)}. `
       + `The creation WANTS to move — you can feel it shaking — `
-      + `but physics is a cruel mistress. It cannot. Try a bigger battery!`,
+      + `but physics is a cruel mistress. Try a bigger battery!`,
     ],
 
     battery: [
       `It moved! Then… it didn't. Range = battery capacity ÷ body mass. `
       + `${n(battery.capacity)} ÷ ${n(body.mass)} = ${R}. `
-      + `I demand at least ${RH} to reach the finish. `
-      + `The ${battery.label} ran dry ${(THRESHOLD.range - range).toFixed(2)} units short. `
+      + `I demand at least ${RH} to reach the finish ${terrain}. `
+      + `The ${battery.label} ran dry ${(lv.range - range).toFixed(2)} units short. `
       + `The glow faded. The dream died. The ${body.label} just… stopped. Spectacular!`,
 
       `Torque was fine — ${T}, well above ${TH}. Balance was fine — ${B}. `
-      + `But range? Range = ${n(battery.capacity)} capacity ÷ ${n(body.mass)} mass = ${R}. `
-      + `The finish line needs ${RH}. `
-      + `The ${battery.label} is simply too small for the ${body.label}. `
+      + `But range ${terrain}? Range = ${n(battery.capacity)} capacity ÷ ${n(body.mass)} mass = ${R}. `
+      + `The finish needs ${RH}. `
+      + `The ${battery.label} is simply too small for the ${body.label} ${terrain}. `
       + `It died mid-track, like a candle in a storm. Exquisite tragedy!`,
 
-      `I've seen this before — always with the ${battery.label}. `
+      `I've seen this before — always with the ${battery.label} ${terrain}. `
       + `Capacity: ${n(battery.capacity)}. Mass to haul: ${n(body.mass)}. `
-      + `Range score: ${R}. Minimum to finish: ${RH}. `
+      + `Range score: ${R}. Minimum to finish ${terrain}: ${RH}. `
       + `Your creation managed ${n(rangeToPct(range) - START_PCT)}% of the track before the lights went out. `
       + `More capacity, or a lighter body — those are your only paths to glory!`,
     ],
 
     success: [
-      `YES! YES! IT WORKS! `
+      `YES! YES! IT WORKS ${terrain.toUpperCase()}! `
       + `Torque: ${T} ✓ (need ${TH}) — `
       + `Balance: ${B} ✓ (need ${BH}) — `
       + `Range: ${R} ✓ (need ${RH}). `
-      + `All three scores pass! The ${body.label} with ${limb.label} and the ${battery.label} `
-      + `is a masterpiece of mad engineering! `
-      + `It REACHED THE FINISH LINE! My genius is confirmed once again!`,
+      + `All three scores pass the ${lv.label} challenge! `
+      + `The ${body.label} with ${limb.label} and the ${battery.label} `
+      + `is a masterpiece of mad engineering! IT REACHED THE FINISH LINE!`,
 
-      `FLAWLESS EXECUTION! `
+      `FLAWLESS EXECUTION on the ${lv.label}! `
       + `The ${battery.label} drove torque to ${T} — crushing the ${TH} minimum. `
-      + `The ${body.label} balanced at ${B} — well above ${BH}. `
+      + `The ${body.label} balanced at ${B} — well above the ${BH} needed ${terrain}. `
       + `And range hit ${R} — clearing the ${RH} threshold with room to spare. `
       + `I may have a tear in my eye. It's just the lab fumes. Probably.`,
 
       `The numbers don't lie and neither does Dr. Voltan! `
-      + `Balance ${B}, torque ${T}, range ${R} — every single score above its threshold. `
+      + `Balance ${B}, torque ${T}, range ${R} — every score above its ${lv.label} threshold. `
       + `The ${limb.label} provided exactly the stability I needed; `
-      + `the ${battery.label} had the range to close it out. `
+      + `the ${battery.label} had the range to close it out ${terrain}. `
       + `This combination WORKS. Write it down. Frame it. Tattoo it on your forearm!`,
     ],
   };
@@ -365,20 +430,24 @@ function typewriterHTML(el, html, msPerChar) {
   tick();
 }
 function resetGame() {
-  selection.body = null;
-  selection.limb = null;
+  selection.body    = null;
+  selection.limb    = null;
   selection.battery = null;
+  selection.level   = null;
 
   document.querySelectorAll('.part-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
   updateButton();
 
   const stage   = document.getElementById('stage');
   const panel   = document.getElementById('scientist-panel');
   const robot   = document.getElementById('robot');
   const textEl  = document.getElementById('scientist-text');
-  if (stage)  stage.classList.remove('visible');
-  if (panel)  panel.classList.remove('visible');
-  if (textEl) textEl.innerHTML = '';
+  const trackBg = document.querySelector('.track-bg');
+  if (stage)   stage.classList.remove('visible');
+  if (panel)   panel.classList.remove('visible');
+  if (textEl)  textEl.innerHTML = '';
+  if (trackBg) trackBg.src = LEVELS[0].track;
   if (robot) {
     robot.className = 'robot-sprite';
     robot.style.removeProperty('--start-x');
@@ -394,10 +463,11 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
   buildColumn('col-bodies',    PARTS.bodies,    'body');
   buildColumn('col-limbs',     PARTS.limbs,     'limb');
   buildColumn('col-batteries', PARTS.batteries, 'battery');
+  buildLevelSelector();
 
   btnActivate.addEventListener('click', () => {
-    if (!selection.body || !selection.limb || !selection.battery) return;
-    const result = evaluate(selection.body, selection.limb, selection.battery);
+    if (!selection.body || !selection.limb || !selection.battery || !selection.level) return;
+    const result = evaluate(selection.body, selection.limb, selection.battery, selection.level);
     runAnimation(result);
     btnActivate.disabled = true;  // prevent double-click mid-animation
   });
@@ -408,5 +478,5 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
 
 // ── Export for tests (Node only) ─────────────────────────────
 if (typeof module !== 'undefined') {
-  module.exports = { PARTS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT, getDialogue, variantIndex };
+  module.exports = { PARTS, LEVELS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT, getDialogue, variantIndex };
 }

@@ -3,7 +3,7 @@
 
 'use strict';
 
-const { PARTS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT,
+const { PARTS, LEVELS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT,
         getDialogue, variantIndex } = require('./game.js');
 
 // ── Tiny test harness ─────────────────────────────────────────
@@ -231,6 +231,68 @@ for (const [b, l, bat] of EXPECTED.map(r => r.slice(0, 3))) {
   const v = variantIndex(body(b), limb(l), battery(bat));
   expectTrue(`${b}+${l}+${bat} variant in {0,1,2}`, v === 0 || v === 1 || v === 2);
 }
+
+// 10. All 3 levels × 27 combos: produce a valid outcome and non-empty dialogue
+console.log('\n--- All 3 levels × 27 combos ---');
+
+// Expected distributions (pre-computed):
+// flat:   tip:6  spin:7  battery:4  success:10
+// mud:    tip:6  spin:12 battery:3  success:6
+// bridge: tip:9  spin:6  battery:3  success:9
+
+const VALID_OUTCOMES = new Set(['tip', 'spin', 'battery', 'success']);
+
+for (const level of LEVELS) {
+  const levelCounts = { tip: 0, spin: 0, battery: 0, success: 0 };
+
+  for (const [b, l, bat] of EXPECTED.map(r => r.slice(0, 3))) {
+    const bp   = body(b);
+    const lp   = limb(l);
+    const batp = battery(bat);
+    const result  = evaluate(bp, lp, batp, level);
+    const dialogue = getDialogue(result, bp, lp, batp, level);
+
+    expectTrue(
+      `${level.id}: ${b}+${l}+${bat} → valid outcome`,
+      VALID_OUTCOMES.has(result.outcome)
+    );
+    expectTrue(
+      `${level.id}: ${b}+${l}+${bat} → non-empty dialogue`,
+      typeof dialogue === 'string' && dialogue.trim().length > 0
+    );
+    // Dialogue must mention the terrain flavour text (case-insensitive)
+    const plain = dialogue.replace(/<[^>]+>/g, '').toLowerCase();
+    const terrainCheck = level.flavour.split(' ').slice(-2).join(' ').toLowerCase();
+    expectTrue(
+      `${level.id}: ${b}+${l}+${bat} → dialogue mentions terrain`,
+      plain.includes(terrainCheck)
+    );
+
+    levelCounts[result.outcome]++;
+  }
+
+  // Each level must produce all four outcomes
+  expectTrue(`${level.id}: has tip outcomes`,     levelCounts.tip     >= 1);
+  expectTrue(`${level.id}: has spin outcomes`,    levelCounts.spin    >= 1);
+  expectTrue(`${level.id}: has battery outcomes`, levelCounts.battery >= 1);
+  expectTrue(`${level.id}: has success outcomes`, levelCounts.success >= 1);
+  expectTrue(`${level.id}: covers all 27 combos`,
+    Object.values(levelCounts).reduce((a, b) => a + b, 0) === 27);
+}
+
+// 11. Level thresholds differ between levels
+console.log('\n--- Level thresholds are distinct ---');
+const [flat, mud, bridge] = LEVELS;
+expectTrue('mud torque threshold > flat torque threshold',    mud.torque    > flat.torque);
+expectTrue('mud range threshold > flat range threshold',      mud.range     > flat.range);
+expectTrue('bridge balance threshold > flat balance threshold', bridge.balance > flat.balance);
+expectTrue('bridge balance threshold > mud balance threshold',  bridge.balance > mud.balance);
+
+// 12. evaluate() with no level argument defaults to flat (level 0) thresholds
+console.log('\n--- evaluate() defaults to flat thresholds when level omitted ---');
+const flatResult    = evaluate(body('heavy-torso'), limb('spindly-legs'), battery('tiny-cell'), flat);
+const defaultResult = evaluate(body('heavy-torso'), limb('spindly-legs'), battery('tiny-cell'));
+expect('default level gives same outcome as flat', defaultResult.outcome, flatResult.outcome);
 
 // ── Summary ───────────────────────────────────────────────────
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
