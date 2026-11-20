@@ -1,0 +1,3 @@
+# Frankenstein's Lab
+
+A spooky browser lab where you build a robot from scavenged parts, bring it to life, and watch it fail in spooky ways. An AI 'mad scientist' explains why it failed using real physics like torque, balance, and battery. Built solo for the Kiroween 2026 hackathon, Frankenstein category.
