@@ -4,10 +4,10 @@ Build order: scaffold → data → logic → visuals → animation → dialogue 
 
 ## Checklist
 
-1. [ ] Create `index.html`, `style.css`, `game.js` with empty stubs; confirm it opens in browser.
-2. [ ] Add spooky base theme to `style.css` (dark background, green accent, horror font via Google Fonts).
-3. [ ] Draw or source 3 body SVGs, 3 limb SVGs, 3 battery SVGs, 1 scientist SVG, 1 track SVG; drop in `assets/`.
-4. [ ] Build the parts selection UI: 3 columns of 3 cards each, highlight on click, one-active-per-column rule.
+1. [x] Create `index.html`, `style.css`, `game.js` with empty stubs; confirm it opens in browser.
+2. [x] Add spooky base theme to `style.css` (dark background, green accent, horror font via Google Fonts).
+3. [x] Draw or source 3 body SVGs, 3 limb SVGs, 3 battery SVGs, 1 scientist SVG, 1 track SVG; drop in `assets/`.
+4. [x] Build the parts selection UI: 3 columns of 3 cards each, highlight on click, one-active-per-column rule.
 5. [ ] Wire "Bring it to life!" button: disabled until all three columns have a selection.
 6. [ ] Implement `evaluate()` in `game.js` with the torque / balance / range formulas.
 7. [ ] Write unit tests (plain JS, no framework) for all 27 part combos; fix any tuning needed so outcomes are interesting.

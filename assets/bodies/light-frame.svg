@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100" width="80" height="100">
+  <!-- Light Frame: narrow ribcage structure -->
+  <!-- Neck -->
+  <rect x="34" y="4" width="12" height="14" rx="4" fill="#4a5568" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Head bolt left -->
+  <rect x="22" y="8" width="10" height="6" rx="2" fill="#2d3748" stroke="#68d391" stroke-width="1"/>
+  <!-- Head bolt right -->
+  <rect x="48" y="8" width="10" height="6" rx="2" fill="#2d3748" stroke="#68d391" stroke-width="1"/>
+  <!-- Main torso frame -->
+  <rect x="20" y="18" width="40" height="52" rx="4" fill="#2d3748" stroke="#68d391" stroke-width="2"/>
+  <!-- Rib lines -->
+  <line x1="20" y1="30" x2="60" y2="30" stroke="#68d391" stroke-width="1" opacity="0.5"/>
+  <line x1="20" y1="42" x2="60" y2="42" stroke="#68d391" stroke-width="1" opacity="0.5"/>
+  <line x1="20" y1="54" x2="60" y2="54" stroke="#68d391" stroke-width="1" opacity="0.5"/>
+  <!-- Center spine -->
+  <line x1="40" y1="18" x2="40" y2="70" stroke="#68d391" stroke-width="1" opacity="0.4"/>
+  <!-- Shoulder pegs -->
+  <circle cx="16" cy="24" r="5" fill="#4a5568" stroke="#68d391" stroke-width="1.5"/>
+  <circle cx="64" cy="24" r="5" fill="#4a5568" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Label -->
+  <text x="40" y="88" text-anchor="middle" font-size="9" fill="#68d391" font-family="monospace">LIGHT</text>
+  <text x="40" y="98" text-anchor="middle" font-size="9" fill="#68d391" font-family="monospace">FRAME</text>
+</svg>

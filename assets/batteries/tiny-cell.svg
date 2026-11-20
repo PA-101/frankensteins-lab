@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 80" width="60" height="80">
+  <!-- Tiny Cell: small AA-style battery -->
+  <!-- Terminal cap -->
+  <rect x="22" y="2" width="16" height="8" rx="3" fill="#68d391"/>
+  <!-- Body -->
+  <rect x="10" y="10" width="40" height="58" rx="5" fill="#1a3a1a" stroke="#68d391" stroke-width="2"/>
+  <!-- Charge indicator: low -->
+  <rect x="14" y="52" width="32" height="12" rx="2" fill="#1a3a1a" stroke="#68d391" stroke-width="1"/>
+  <rect x="16" y="54" width="8" height="8" rx="1" fill="#68d391" opacity="0.6"/>
+  <!-- Plus sign -->
+  <text x="30" y="38" text-anchor="middle" font-size="20" fill="#68d391" font-family="monospace">+</text>
+  <!-- Label -->
+  <text x="30" y="20" text-anchor="middle" font-size="7" fill="#68d391" font-family="monospace">TINY</text>
+  <text x="30" y="29" text-anchor="middle" font-size="7" fill="#68d391" font-family="monospace">CELL</text>
+</svg>

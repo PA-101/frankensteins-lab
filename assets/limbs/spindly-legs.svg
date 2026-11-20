@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" width="80" height="60">
+  <!-- Spindly Legs: thin stick legs with pointy feet -->
+  <!-- Left leg -->
+  <line x1="27" y1="4" x2="20" y2="44" stroke="#68d391" stroke-width="3" stroke-linecap="round"/>
+  <!-- Left foot -->
+  <ellipse cx="16" cy="50" rx="12" ry="5" fill="#2d3748" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Left knee joint -->
+  <circle cx="23" cy="26" r="4" fill="#1a202c" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Right leg -->
+  <line x1="53" y1="4" x2="60" y2="44" stroke="#68d391" stroke-width="3" stroke-linecap="round"/>
+  <!-- Right foot -->
+  <ellipse cx="64" cy="50" rx="12" ry="5" fill="#2d3748" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Right knee joint -->
+  <circle cx="57" cy="26" r="4" fill="#1a202c" stroke="#68d391" stroke-width="1.5"/>
+  <!-- Label -->
+  <text x="40" y="12" text-anchor="middle" font-size="8" fill="#68d391" font-family="monospace">SPINDLY LEGS</text>
+</svg>

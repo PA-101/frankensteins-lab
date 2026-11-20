@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frankenstein's Lab 🧪</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══ HEADER ══════════════════════════════════════════════ -->
+  <header class="lab-header">
+    <h1>🧪 Frankenstein's Lab</h1>
+    <p class="subtitle">Assemble your creation &amp; bring it to life — if you dare.</p>
+  </header>
+
+  <main>
+
+    <!-- ══ PARTS PICKER ════════════════════════════════════════ -->
+    <section class="parts-section" aria-label="Parts selection">
+      <h2>⚙️ Choose Your Parts</h2>
+
+      <div class="parts-grid">
+
+        <!-- Body column -->
+        <div class="part-column" aria-label="Body">
+          <div class="column-label">Body</div>
+          <div id="col-bodies" class="part-column-cards"></div>
+        </div>
+
+        <!-- Movement column -->
+        <div class="part-column" aria-label="Movement">
+          <div class="column-label">Movement</div>
+          <div id="col-limbs" class="part-column-cards"></div>
+        </div>
+
+        <!-- Battery column -->
+        <div class="part-column" aria-label="Battery">
+          <div class="column-label">Battery</div>
+          <div id="col-batteries" class="part-column-cards"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══ ACTIVATE BUTTON ═════════════════════════════════════ -->
+    <div class="action-row">
+      <button id="btn-activate" disabled>⚡ Bring it to life!</button>
+    </div>
+
+    <!-- ══ ANIMATION STAGE (hidden until activation) ══════════ -->
+    <section class="stage-section" id="stage" aria-label="Animation stage">
+      <div class="track-wrapper">
+        <img class="track-bg" src="assets/track.svg" alt="spooky track" />
+        <!-- Robot assembled from selected SVG sprites (built by JS in Task 8) -->
+        <div class="robot-sprite" id="robot">
+          <img class="robot-body"  id="robot-body-img"  src="" alt="" />
+          <img class="robot-limbs" id="robot-limbs-img" src="" alt="" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ MAD SCIENTIST PANEL (hidden until animation ends) ══ -->
+    <section class="scientist-panel" id="scientist-panel" aria-label="Mad Scientist explanation">
+      <img class="scientist-img" src="assets/scientist.svg" alt="Mad Scientist" />
+      <div class="speech-bubble">
+        <div class="scientist-name">Dr. Voltan</div>
+        <p id="scientist-text"><!-- filled by JS --></p>
+        <button id="btn-try-again">🔄 Try Again</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
