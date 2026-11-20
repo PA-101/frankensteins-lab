@@ -97,13 +97,32 @@ const ANIM_CLASS = {
   success: 'anim-move',
 };
 
+/*
+ * Map a physics score to a pixel position inside the track.
+ * The usable track runs from START_PX (~8% from left) to END_PX (~88% from left).
+ * We express positions as percentages so they scale with the wrapper width.
+ *
+ * For success:  stop-x = END_PX  (finish line)
+ * For battery:  stop-x = lerp(START_PX, END_PX, clamp(range / 1.5, 0.15, 0.85))
+ *               A range score just above the threshold (0.5) → ~40% of the way.
+ *               A range score near success (1.5+) → ~85% of the way.
+ */
+const START_PCT = 8;    // percent from left where the robot starts (near GO flag)
+const END_PCT   = 82;   // percent from left where the finish line is
+
+function rangeToPct(range) {
+  // Clamp ratio between 0.1 and 1.0, map to [START_PCT, END_PCT]
+  const ratio = Math.max(0.1, Math.min(range / 1.5, 1.0));
+  return START_PCT + ratio * (END_PCT - START_PCT);
+}
+
 function runAnimation(result) {
   const stage   = document.getElementById('stage');
   const robot   = document.getElementById('robot');
   const bodyImg = document.getElementById('robot-body-img');
   const limbImg = document.getElementById('robot-limbs-img');
 
-  // Set robot sprites to selected parts
+  // Set robot sprites
   bodyImg.src = selection.body.img;
   bodyImg.alt = selection.body.label;
   limbImg.src = selection.limb.img;
@@ -112,18 +131,40 @@ function runAnimation(result) {
   // Show stage
   stage.classList.add('visible');
 
-  // Reset any previous animation classes and position
+  // Clear any previous animation state fully
   robot.className = 'robot-sprite';
-  robot.style.left = '60px';
+  // Removing a class doesn't restart a finished animation; force reflow
+  void robot.offsetWidth; // eslint-disable-line no-void
 
-  // Brief power-flash, then animate
+  // Compute stop position as a percentage of wrapper width
+  const startX = `${START_PCT}%`;
+  let   stopX;
+
+  if (result.outcome === 'success') {
+    stopX = `${END_PCT}%`;
+  } else if (result.outcome === 'battery') {
+    // Partial travel proportional to range score (capped below END)
+    const pct = Math.min(rangeToPct(result.range), END_PCT - 5);
+    stopX = `${pct}%`;
+  } else {
+    // tip and spin: robot stays near start
+    stopX = startX;
+  }
+
+  // Write positions as CSS custom properties so keyframes can read them
+  robot.style.setProperty('--start-x', startX);
+  robot.style.setProperty('--stop-x',  stopX);
+  robot.style.left = startX;
+
+  // Brief power-flash, then apply the outcome animation
   robot.classList.add('power-flash');
 
   setTimeout(() => {
     robot.classList.remove('power-flash');
+    void robot.offsetWidth; // force reflow so power-flash removal is committed
     robot.classList.add(ANIM_CLASS[result.outcome]);
 
-    // After animation ends, show scientist panel (Task 11 wires the text)
+    // After the animation finishes, show the scientist panel
     robot.addEventListener('animationend', onAnimEnd, { once: true });
   }, 500);
 }
@@ -141,17 +182,20 @@ function resetGame() {
   selection.limb = null;
   selection.battery = null;
 
-  // Deselect all cards
   document.querySelectorAll('.part-card').forEach(c => c.classList.remove('selected'));
   updateButton();
 
-  // Hide stage and scientist
   const stage   = document.getElementById('stage');
   const panel   = document.getElementById('scientist-panel');
   const robot   = document.getElementById('robot');
   if (stage)  stage.classList.remove('visible');
   if (panel)  panel.classList.remove('visible');
-  if (robot)  robot.className = 'robot-sprite';
+  if (robot) {
+    robot.className = 'robot-sprite';
+    robot.style.removeProperty('--start-x');
+    robot.style.removeProperty('--stop-x');
+    robot.style.removeProperty('left');
+  }
 }
 
 // ── Init (browser only) ───────────────────────────────────────
@@ -175,5 +219,5 @@ if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded
 
 // ── Export for tests (Node only) ─────────────────────────────
 if (typeof module !== 'undefined') {
-  module.exports = { PARTS, THRESHOLD, evaluate };
+  module.exports = { PARTS, THRESHOLD, evaluate, rangeToPct, START_PCT, END_PCT };
 }

@@ -196,7 +196,7 @@ main {
 
 /* ---------- Animation stage ---------- */
 .stage-section {
-  display: none;          /* shown by JS after button press */
+  display: none;
   flex-direction: column;
   gap: 0;
 }
@@ -206,25 +206,38 @@ main {
 .track-wrapper {
   position: relative;
   width: 100%;
-  overflow: hidden;
+  /* tall enough to show body (100px) + limbs (60px) + ground clearance */
+  height: 220px;
   border-radius: 8px;
   border: 1px solid var(--border);
+  overflow: hidden;
+  background: #0d0d1a;
 }
 
 .track-wrapper img.track-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 100%;
+  height: 120px;
   display: block;
 }
 
-/* Robot sits on the track, positioned absolutely */
+/*
+ * Robot sits on the track.
+ * bottom: 28px = ground-line inside the 120px track SVG (the track surface).
+ * left is controlled by JS via the --robot-x CSS custom property.
+ * transform-origin at bottom so tip-over rotates from the feet.
+ */
 .robot-sprite {
   position: absolute;
   bottom: 28px;
-  left: 60px;
+  left: var(--robot-x, 60px);
   display: flex;
   flex-direction: column;
   align-items: center;
   transform-origin: bottom center;
+  transition: none;   /* JS/keyframes drive movement; no CSS transition */
 }
 
 .robot-sprite img {
@@ -237,54 +250,90 @@ main {
 
 /* ---------- Animation keyframes ---------- */
 
-/* Success: robot drives to the finish */
+/*
+ * SUCCESS — smooth drive to finish.
+ * JS sets --stop-x on the robot before adding the class.
+ * We animate `left` from the starting position to --stop-x.
+ */
 @keyframes move-to-finish {
-  0%   { left: 60px; }
-  100% { left: calc(100% - 120px); }
+  0%   { left: var(--start-x, 60px); }
+  100% { left: var(--stop-x, calc(100% - 120px)); }
 }
 .anim-move {
-  animation: move-to-finish 4s ease-in-out forwards;
+  animation: move-to-finish 3.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
-/* Failure: tip over */
+/*
+ * FAILURE: TIP OVER — balance too low.
+ * Robot lurches forward then rotates 90° from bottom-centre and fades.
+ * Lurch is a small positive X shift to sell the fall direction.
+ */
 @keyframes tip-over {
-  0%   { transform: rotate(0deg); opacity: 1; }
-  60%  { transform: rotate(80deg); opacity: 1; }
-  100% { transform: rotate(90deg); opacity: 0; }
+  0%   { transform: translateX(0)   rotate(0deg);  opacity: 1; }
+  20%  { transform: translateX(12px) rotate(15deg); opacity: 1; }
+  70%  { transform: translateX(30px) rotate(80deg); opacity: 1; }
+  100% { transform: translateX(36px) rotate(92deg); opacity: 0; }
 }
 .anim-tip {
-  animation: tip-over 1.8s ease-in forwards;
+  animation: tip-over 2s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
-/* Failure: spin in place */
-@keyframes wheel-spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-/* The robot rocks back and forth without moving forward */
-@keyframes spin-in-place {
-  0%   { transform: rotate(-8deg); }
-  50%  { transform: rotate(8deg); }
-  100% { transform: rotate(-8deg); }
+/*
+ * FAILURE: STALL SHAKE — torque too low.
+ * Robot vibrates violently left/right without moving forward.
+ * Uses translateX only (not rotate) so it reads as "wheels spinning but gripping nothing".
+ */
+@keyframes stall-shake {
+  0%,100% { transform: translateX(0); }
+  10%     { transform: translateX(-10px) rotate(-4deg); }
+  20%     { transform: translateX(10px)  rotate( 4deg); }
+  30%     { transform: translateX(-12px) rotate(-5deg); }
+  40%     { transform: translateX(12px)  rotate( 5deg); }
+  50%     { transform: translateX(-8px)  rotate(-3deg); }
+  60%     { transform: translateX(8px)   rotate( 3deg); }
+  70%     { transform: translateX(-6px)  rotate(-2deg); }
+  80%     { transform: translateX(6px)   rotate( 2deg); }
+  90%     { transform: translateX(-3px)  rotate(-1deg); }
 }
 .anim-spin {
-  animation: spin-in-place 0.4s ease-in-out 8 forwards;
+  animation: stall-shake 2.4s ease-in-out forwards;
 }
 
-/* Failure: battery dies, decelerates to stop */
-@keyframes battery-stop {
-  0%   { left: 60px; }
-  40%  { left: 35%; }
-  100% { left: 35%; opacity: 0.4; }
+/*
+ * FAILURE: BATTERY DEAD — robot coasts forward then fades out with a dying glow.
+ * JS sets --stop-x (the partial-distance stop point) before adding the class.
+ * The glow dims to nothing as the robot halts.
+ */
+@keyframes battery-coast {
+  0%   {
+    left: var(--start-x, 60px);
+    opacity: 1;
+    filter: drop-shadow(0 0 10px var(--green)) drop-shadow(0 0 6px var(--green-glow));
+  }
+  55%  {
+    left: var(--stop-x, 40%);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px var(--green-glow));
+  }
+  75%  {
+    left: var(--stop-x, 40%);
+    opacity: 0.8;
+    filter: drop-shadow(0 0 2px #333);
+  }
+  100% {
+    left: var(--stop-x, 40%);
+    opacity: 0.3;
+    filter: none;
+  }
 }
 .anim-stop {
-  animation: battery-stop 3s ease-out forwards;
+  animation: battery-coast 3.2s ease-out forwards;
 }
 
 /* Power-up flash on button press */
 @keyframes power-flash {
-  0%,100% { opacity: 1; }
-  50%      { opacity: 0.3; filter: brightness(2); }
+  0%,100% { opacity: 1;   filter: drop-shadow(0 0 6px var(--green-glow)); }
+  50%     { opacity: 0.4; filter: brightness(2.5) drop-shadow(0 0 16px var(--green)); }
 }
 .power-flash {
   animation: power-flash 0.5s ease-in-out;
